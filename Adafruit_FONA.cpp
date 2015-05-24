@@ -19,11 +19,13 @@
 #define prog_char  char PROGMEM
 
 #if (ARDUINO >= 100)
- #include "Arduino.h"
- #include <SoftwareSerial.h>
+  #include "Arduino.h"
+  #ifndef __SAM3X8E__  // Arduino Due doesn't support SoftwareSerial
+    #include <SoftwareSerial.h>
+  #endif
 #else
- #include "WProgram.h"
- #include <NewSoftSerial.h>
+  #include "WProgram.h"
+  #include <NewSoftSerial.h>
 #endif
 
 #include "Adafruit_FONA.h"
@@ -76,7 +78,6 @@ boolean Adafruit_FONA::begin(Stream &port) {
 
 /********* Real Time Clock ********************************************/
 
-/* returns value in mV (uint16_t) */
 boolean Adafruit_FONA::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec) {
   uint16_t v;
   sendParseReply(F("AT+CCLK?"), F("+CCLK: "), &v, '/', 0);
@@ -246,6 +247,15 @@ boolean Adafruit_FONA::setVolume(uint8_t i) {
 }
 
 
+boolean Adafruit_FONA::playDTMF(char dtmf) {
+  char str[4];
+  str[0] = '\"';
+  str[1] = dtmf;
+  str[2] = '\"';
+  str[3] = 0;
+  return sendCheckReply(F("AT+CLDTMF=3,"), str, F("OK"));
+}
+
 boolean Adafruit_FONA::playToolkitTone(uint8_t t, uint16_t len) {
   return sendCheckReply(F("AT+STTONE=1,"), t, len, F("OK"));
 }
@@ -321,7 +331,7 @@ int8_t Adafruit_FONA::getFMSignalLevel(uint16_t station) {
 
 /********* PWM/BUZZER **************************************************/
 
-boolean Adafruit_FONA::PWM(uint16_t period, uint8_t duty) {
+boolean Adafruit_FONA::setPWM(uint16_t period, uint8_t duty) {
   if (period > 2000) return false;
   if (duty > 100) return false;
 
