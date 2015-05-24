@@ -23,6 +23,8 @@
  #include <NewSoftSerial.h>
 #endif
 
+#include "Client.h"
+
 //#define ADAFRUIT_FONA_DEBUG
 
 #define FONA_HEADSETAUDIO 0
@@ -43,6 +45,36 @@
 #define FONA_STTONE_USADIALTONE 20
 
 #define FONA_DEFAULT_TIMEOUT_MS 500
+#define FONA_RX_BUFFERSIZE 64
+
+class Adafruit_FONA;
+
+class Adafruit_FONA_Client : public Client {
+
+ public:
+
+  Adafruit_FONA_Client(Adafruit_FONA* fona);
+  boolean begin(Stream &port);
+
+  int connect(IPAddress ip, uint16_t port);
+  int connect(const char *host, uint16_t port);
+  size_t write(uint8_t);
+  size_t write(const uint8_t *buf, size_t size);
+  int available();
+  int read();
+  int read(uint8_t *buf, size_t size);
+  int peek();
+  void flush();
+  void stop();
+
+  uint8_t connected();
+  virtual operator bool();
+
+ private:
+
+  Adafruit_FONA* _fona;
+
+};
 
 class Adafruit_FONA : public Stream {
  public:
@@ -59,6 +91,10 @@ class Adafruit_FONA : public Stream {
   // RTC
   boolean enableRTC(uint8_t i);
   boolean readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec);
+
+  // TCP
+  boolean tcpConnect(char *host, char *port);
+  boolean tcpSend();
 
   // Battery and ADC
   boolean getADCVoltage(uint16_t *v);
@@ -150,6 +186,7 @@ class Adafruit_FONA : public Stream {
   uint8_t getReply(const __FlashStringHelper *send, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   uint8_t getReply(const __FlashStringHelper *prefix, char *suffix, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   uint8_t getReply(const __FlashStringHelper *prefix, int32_t suffix, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
+  uint8_t getReply(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, uint16_t timeout);
   uint8_t getReply(const __FlashStringHelper *prefix, int32_t suffix1, int32_t suffix2, uint16_t timeout); // Don't set default value or else function call is ambiguous.
   uint8_t getReplyQuoted(const __FlashStringHelper *prefix, const __FlashStringHelper *suffix, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
 
@@ -157,6 +194,7 @@ class Adafruit_FONA : public Stream {
   boolean sendCheckReply(const __FlashStringHelper *send, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, char *suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, int32_t suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
+  boolean sendCheckReply(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, int32_t suffix, int32_t suffix2, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReplyQuoted(const __FlashStringHelper *prefix, const __FlashStringHelper *suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
 
