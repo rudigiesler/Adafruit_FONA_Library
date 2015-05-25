@@ -27,7 +27,7 @@
 
 #include "Client.h"
 
-//#define ADAFRUIT_FONA_DEBUG
+#define ADAFRUIT_FONA_DEBUG
 
 #define FONA_HEADSETAUDIO 0
 #define FONA_EXTAUDIO 1
@@ -47,36 +47,7 @@
 #define FONA_STTONE_USADIALTONE 20
 
 #define FONA_DEFAULT_TIMEOUT_MS 500
-#define FONA_RX_BUFFERSIZE 64
-
-class Adafruit_FONA;
-
-class Adafruit_FONA_Client : public Client {
-
- public:
-
-  Adafruit_FONA_Client(Adafruit_FONA* fona);
-  boolean begin(Stream &port);
-
-  int connect(IPAddress ip, uint16_t port);
-  int connect(const char *host, uint16_t port);
-  size_t write(uint8_t);
-  size_t write(const uint8_t *buf, size_t size);
-  int available();
-  int read();
-  int read(uint8_t *buf, size_t size);
-  int peek();
-  void flush();
-  void stop();
-
-  uint8_t connected();
-  virtual operator bool();
-
- private:
-
-  Adafruit_FONA* _fona;
-
-};
+#define FONA_TX_BUFFERSIZE 64
 
 class Adafruit_FONA : public Stream {
  public:
@@ -95,8 +66,13 @@ class Adafruit_FONA : public Stream {
   boolean readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec);
 
   // TCP
-  boolean tcpConnect(char *host, char *port);
+  boolean tcpConnect(char *h, char *p);
+  boolean tcpConnected();
   boolean tcpSend();
+  boolean tcpTransparentMode(boolean enable);
+  boolean tcpCommandMode();
+  boolean tcpDataMode();
+  boolean tcpDisconnect();
 
   // Battery and ADC
   boolean getADCVoltage(uint16_t *v);
@@ -217,4 +193,34 @@ class Adafruit_FONA : public Stream {
   static void onIncomingCall();
 
   Stream *mySerial;
+};
+
+
+class Adafruit_FONA_Client : public Client {
+
+ public:
+
+  Adafruit_FONA_Client(int8_t r);
+  Adafruit_FONA_Client(Adafruit_FONA* fona);
+
+  boolean begin(Stream &port);
+
+  int connect(IPAddress ip, uint16_t port);
+  int connect(const char *host, uint16_t port);
+  size_t write(uint8_t);
+  size_t write(const uint8_t *buf, size_t size);
+  int available();
+  int read();
+  int read(uint8_t *buf, size_t size);
+  int peek();
+  void flush();
+  void stop();
+
+  uint8_t connected();
+  operator bool();
+
+ private:
+  int8_t _rstpin;
+  Adafruit_FONA* _fona;
+
 };

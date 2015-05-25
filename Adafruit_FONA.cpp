@@ -57,7 +57,7 @@ boolean Adafruit_FONA::begin(Stream &port) {
 
   while (mySerial->available()) mySerial->read();
 
-  sendCheckReply(F("AT"), F("OK"));
+  sendCheckReply(F("ATZ"), F("OK"));
   delay(100);
   sendCheckReply(F("AT"), F("OK"));
   delay(100);
@@ -94,16 +94,17 @@ boolean Adafruit_FONA::enableRTC(uint8_t i) {
 
 /********************** TCP ************************************/
 
-boolean Adafruit_FONA::tcpConnect(char *host, char *port) {
+boolean Adafruit_FONA::tcpConnect(char *host, char* port) {
 
-  if (! sendCheckReply(F("AT+CIPSTART=\"TCP\","), host, port, F("OK")))
+  if (! sendCheckReply(F("AT+CIPSTART=\"TCP\","), host, port, F("OK"), 10000))
     return false;
 
   return true;
 
 }
 
-boolean Adafruit_FONA::tcpTransparentMode(boolean enable) {
+boolean Adafruit_FONA::tcpTransparentMode(boolean enable)
+{
 
   if(enable)
     return sendCheckReply(F("AT+CIPMODE=1"), F("OK"));
@@ -112,22 +113,19 @@ boolean Adafruit_FONA::tcpTransparentMode(boolean enable) {
 
 }
 
-boolean Adafruit_FONA::tcpCommandMode() {
-
+boolean Adafruit_FONA::tcpCommandMode()
+{
   return sendCheckReply(F("+++"), F("OK"));
-
 }
 
-boolean Adafruit_FONA::tcpDataMode() {
-
+boolean Adafruit_FONA::tcpDataMode()
+{
   return sendCheckReply(F("ATO"), F("OK"));
-
 }
 
-boolean Adafruit_FONA::tcpConnected() {
-
-  return sendCheckReply(F("AT+CIPSTATUS"), F("OK"));
-
+boolean Adafruit_FONA::tcpConnected()
+{
+  return connected = sendCheckReply(F("AT+CIPSTATUS"), F("STATE: CONNECTED"));
 }
 
 boolean Adafruit_FONA::tcpSend() {
@@ -143,6 +141,9 @@ boolean Adafruit_FONA::tcpSend() {
 }
 
 boolean Adafruit_FONA::tcpDisconnect() {
+
+  if(! tcpConnected())
+    return true;
 
   if (! sendCheckReply(F("AT+CIPCLOSE=1"), F("OK")))
     return false;
@@ -932,7 +933,7 @@ uint8_t Adafruit_FONA::getReply(const __FlashStringHelper *prefix, char *suffix1
   flushInput();
 
 #ifdef ADAFRUIT_FONA_DEBUG
-  Serial.print("\t---> "); Serial.print(prefix); Serial.println(suffix1); Serial.println(suffix2);
+  Serial.print("\t---> "); Serial.print(prefix); Serial.print(suffix1); Serial.print(","); Serial.println(suffix2);
 #endif
 
   mySerial->print(prefix);
@@ -1155,37 +1156,51 @@ boolean Adafruit_FONA::sendParseReply(const __FlashStringHelper *tosend,
 
 /************************* FONA CLIENT *****************************/
 
-Adafruit_FONA_Client::Adafruit_FONA_Client(Adafruit_FONA fona)
+Adafruit_FONA_Client::Adafruit_FONA_Client(int8_t r)
+{
+  Adafruit_FONA fona = Adafruit_FONA(r);
+  _fona = &fona;
+
+}
+Adafruit_FONA_Client::Adafruit_FONA_Client(Adafruit_FONA* fona)
 {
   _fona = fona;
 }
 
 boolean Adafruit_FONA_Client::begin(Stream &port)
 {
-  return _fona.begin(port);
+  return _fona->begin(port);
 }
 
-int Adafruit_FONA_Client::connect(const char* host, uint16_t p)
+int Adafruit_FONA_Client::connect(const char* h, uint16_t p)
 {
 
-  int ret = 0;
+  int attempts = 0;
+  size_t len = strlen(h);
+  char host[len + 1];
   char port [6];
+  strcpy(host, h);
   sprintf(port, "%d", p);
 
-  // enable transparent mode
-  if(! _fona.tcpTransparentMode(true))
-    return 0;
+  // make sure we are in command mode
+  _fona->tcpCommandMode();
 
   // make sure GPRS is enabled
-  if(_fona.GPRSstate() < 1) {
+  _fona->enableGPRS(false);
+  if(! _fona->enableGPRS(true))
+    return 0;
 
-    while(! _fona.enableGPRS(true))
-      delay(2000);
+  delay(10000);
 
-  }
+  _fona->getRSSI();
+
+  // make sure transparent mode is enabled
+  _fona->tcpTransparentMode(false);
+  if(! _fona->tcpTransparentMode(true))
+    return 0;
 
   // connect to tcp server
-  if(_fona.tcpConnect(host, port))
+  if(_fona->tcpConnect(host, port))
     return 1;
   else
     return 0;
@@ -1195,39 +1210,49 @@ int Adafruit_FONA_Client::connect(const char* host, uint16_t p)
 int Adafruit_FONA_Client::connect(IPAddress ip, uint16_t port)
 {
 
-  char host[24];
+  char host[16];
   sprintf(host, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 
   return connect(host, port);
 
 }
 
+uint8_t Adafruit_FONA_Client::connected()
+{
+  return _fona->tcpConnected() ? 1 : 0;
+}
+
+Adafruit_FONA_Client::operator bool()
+{
+  return connected();
+}
+
 int Adafruit_FONA_Client::available()
 {
-  return _fona.available();
+  return _fona->available();
 }
 
 int Adafruit_FONA_Client::peek()
 {
-  return _fona.peek();
+  return _fona->peek();
 }
 
-int Adafruit_FONA_Client::flush()
+void Adafruit_FONA_Client::flush()
 {
-  return _fona.flush();
+  return _fona->flush();
 }
 
 void Adafruit_FONA_Client::stop()
 {
 
-  _fona.tcpCommandMode();
-  _fona.tcpDisconnect();
+  _fona->tcpCommandMode();
+  _fona->tcpDisconnect();
 
 }
 
 size_t Adafruit_FONA_Client::write(uint8_t b)
 {
-  return _fona.write(b);
+  return write(&b, 1);
 }
 
 size_t Adafruit_FONA_Client::write(const uint8_t *buf, size_t size)
@@ -1237,9 +1262,8 @@ size_t Adafruit_FONA_Client::write(const uint8_t *buf, size_t size)
 
   for(i=0; i < size; i++) {
 
-    if(! _fona.write(b[i])) {
+    if(! _fona->write(buf[i]))
       return i;
-    }
 
   }
 
@@ -1251,7 +1275,7 @@ int Adafruit_FONA_Client::read()
 {
 
   if(available())
-    return _fona.read();
+    return _fona->read();
 
   return -1;
 
