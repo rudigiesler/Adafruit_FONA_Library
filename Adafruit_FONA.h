@@ -68,8 +68,9 @@ class Adafruit_FONA : public Stream {
   // TCP
   boolean tcpConnect(char *h, char *p);
   boolean tcpConnected();
-  boolean tcpSend();
-  boolean tcpTransparentMode(boolean enable);
+  boolean tcpQuickSendMode(boolean enabled);
+  boolean tcpSend(char *buf);
+  boolean tcpTransparentMode(boolean enabled);
   boolean tcpCommandMode();
   boolean tcpDataMode();
   boolean tcpDisconnect();
@@ -167,14 +168,15 @@ class Adafruit_FONA : public Stream {
   uint8_t getReply(const __FlashStringHelper *prefix, int32_t suffix, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   uint8_t getReply(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, uint16_t timeout);
   uint8_t getReply(const __FlashStringHelper *prefix, int32_t suffix1, int32_t suffix2, uint16_t timeout); // Don't set default value or else function call is ambiguous.
+  uint8_t getReplyQuoted(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   uint8_t getReplyQuoted(const __FlashStringHelper *prefix, const __FlashStringHelper *suffix, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
 
   boolean sendCheckReply(char *send, char *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *send, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, char *suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, int32_t suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
-  boolean sendCheckReply(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReply(const __FlashStringHelper *prefix, int32_t suffix, int32_t suffix2, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
+  boolean sendCheckReplyQuoted(const __FlashStringHelper *prefix, char *suffix1, char *suffix2, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   boolean sendCheckReplyQuoted(const __FlashStringHelper *prefix, const __FlashStringHelper *suffix, const __FlashStringHelper *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
 
 
