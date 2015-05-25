@@ -27,7 +27,7 @@
 
 #include "Client.h"
 
-#define ADAFRUIT_FONA_DEBUG
+//#define ADAFRUIT_FONA_DEBUG
 
 #define FONA_HEADSETAUDIO 0
 #define FONA_EXTAUDIO 1
@@ -223,6 +223,7 @@ class Adafruit_FONA_Client : public Client {
 
  private:
   int8_t _rstpin;
+  boolean _connected;
   Adafruit_FONA* _fona;
 
 };
